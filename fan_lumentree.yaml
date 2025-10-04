@@ -1,0 +1,196 @@
+# ===================== fan_lumentree.yaml (v5: ưu tiên lumen_device_temp) =====================
+substitutions:
+  fan_name: "Fan"
+  fan_pin: GPIO10
+
+  FAN_THR_HI_DEFAULT: "42.0"   # Bật khi T >= ngưỡng này (khi Auto)
+  FAN_THR_LO_DEFAULT: "41.0"   # Tắt khi T <  ngưỡng này (khi Auto)
+
+# -------- Lưu trạng thái trong ESP --------
+globals:
+  - id: g_auto_mode
+    type: bool
+    restore_value: yes
+    initial_value: 'true'
+  - id: g_thr_hi
+    type: float
+    restore_value: yes
+    initial_value: ${FAN_THR_HI_DEFAULT}
+  - id: g_thr_lo
+    type: float
+    restore_value: yes
+    initial_value: ${FAN_THR_LO_DEFAULT}
+  - id: g_fan_on
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
+
+# -------- Output điều khiển quạt --------
+output:
+  - platform: gpio
+    id: fan_gpio
+    pin: ${fan_pin}
+    # inverted: true   # Nếu logic ngược, bỏ comment dòng này
+
+# -------- Đồng bộ nhiệt độ từ Lumentree (chính) hoặc BMS (backup) --------
+sensor:
+  # Cảm biến nhiệt độ từ Home Assistant (ưu tiên)
+  - platform: homeassistant
+    id: lumen_device_temp
+    entity_id: sensor.device_h240909079_device_temperature
+    internal: true
+    on_value:
+      - script.execute: fan_apply_logic
+
+  # Nhiệt độ tổng hợp nội bộ, ưu tiên Lumentree; fallback BMS
+  - platform: template
+    id: inv_temp_local
+    internal: true
+    update_interval: 5s
+    lambda: |-
+      // Chỉ sử dụng nhiệt độ từ Home Assistant (Lumentree)
+      if (!isnan(id(lumen_device_temp).state)) {
+        return id(lumen_device_temp).state;
+      }
+      // Không dùng fallback BMS nữa
+      return NAN;
+    on_value:
+      - script.execute: fan_apply_logic
+
+# -------- Ngưỡng nhiệt độ (dùng khi Auto) --------
+number:
+  - platform: template
+    id: fan_thr_high
+    name: "${fan_name} T_HIGH (°C)"
+    entity_category: config
+    unit_of_measurement: "°C"
+    min_value: 30
+    max_value: 60
+    step: 0.5
+    mode: slider
+    optimistic: true
+    restore_value: true
+    initial_value: ${FAN_THR_HI_DEFAULT}
+    on_value:
+      - lambda: |-
+          id(g_thr_hi) = x;
+          if (id(g_thr_hi) <= id(g_thr_lo)) {
+            id(g_thr_hi) = id(g_thr_lo) + 0.5f;
+            id(fan_thr_high).publish_state(id(g_thr_hi));
+          }
+      - script.execute: fan_apply_logic
+
+  - platform: template
+    id: fan_thr_low
+    name: "${fan_name} T_LOW (°C)"
+    entity_category: config
+    unit_of_measurement: "°C"
+    min_value: 30
+    max_value: 60
+    step: 0.5
+    mode: slider
+    optimistic: true
+    restore_value: true
+    initial_value: ${FAN_THR_LO_DEFAULT}
+    on_value:
+      - lambda: |-
+          id(g_thr_lo) = x;
+          if (id(g_thr_lo) >= id(g_thr_hi)) {
+            id(g_thr_lo) = id(g_thr_hi) - 0.5f;
+            id(fan_thr_low).publish_state(id(g_thr_lo));
+          }
+      - script.execute: fan_apply_logic
+
+# -------- Công tắc Auto và công tắc tay --------
+switch:
+  # 1) Auto mode: bật để chạy theo nhiệt độ; tắt để điều khiển tay
+  - platform: template
+    id: fan_auto_mode
+    name: "${fan_name} Auto Mode"
+    icon: mdi:robot
+    restore_mode: RESTORE_DEFAULT_ON
+    lambda: |-
+      return id(g_auto_mode);
+    turn_on_action:
+      - lambda: |-
+          id(g_auto_mode) = true;
+      - script.execute: fan_apply_logic
+    turn_off_action:
+      - lambda: |-
+          id(g_auto_mode) = false;
+      - script.execute: fan_apply_logic
+
+  # 2) Manual Fan switch - chỉ hoạt động khi Auto mode = OFF
+  - platform: template
+    id: fan_manual
+    name: "${fan_name} Manual Control"
+    icon: mdi:fan
+    restore_mode: RESTORE_DEFAULT_OFF
+    lambda: |-
+      if (!id(g_auto_mode)) {
+        return id(g_fan_on);
+      } else {
+        return id(g_fan_on);  // Display actual status
+      }
+    turn_on_action:
+      - if:
+          condition:
+            lambda: return !id(g_auto_mode);
+          then:
+            - lambda: |-
+                id(g_fan_on) = true;
+            - script.execute: fan_apply_logic
+    turn_off_action:
+      - if:
+          condition:
+            lambda: return !id(g_auto_mode);
+          then:
+            - lambda: |-
+                id(g_fan_on) = false;
+            - script.execute: fan_apply_logic
+
+# -------- Script xử lý logic quạt --------
+script:
+  - id: fan_apply_logic
+    mode: queued
+    then:
+      - lambda: |-
+          bool should_run = false;
+          float current_temp = id(inv_temp_local).state;
+          
+          if (isnan(current_temp)) {
+            // Không có dữ liệu nhiệt độ - tắt quạt an toàn
+            should_run = false;
+            ESP_LOGW("fan", "No temperature data available, turning fan OFF");
+          }
+          else if (id(g_auto_mode)) {
+            // Chế độ Auto: dùng hysteresis
+            if (current_temp >= id(g_thr_hi)) {
+              should_run = true;
+              ESP_LOGI("fan", "Auto ON: Lumen T=%.1f°C >= %.1f°C", current_temp, id(g_thr_hi));
+            }
+            else if (current_temp < id(g_thr_lo)) {
+              should_run = false;
+              ESP_LOGI("fan", "Auto OFF: Lumen T=%.1f°C < %.1f°C", current_temp, id(g_thr_lo));
+            }
+            else {
+              // Trong vùng hysteresis - giữ nguyên trạng thái hiện tại
+              should_run = id(g_fan_on);
+              ESP_LOGD("fan", "Auto HOLD: T=%.1f°C in [%.1f°C, %.1f°C)", 
+                       current_temp, id(g_thr_lo), id(g_thr_hi));
+            }
+          }
+          else {
+            // Chế độ Manual: dùng g_fan_on
+            should_run = id(g_fan_on);
+            ESP_LOGD("fan", "Manual mode: %s", should_run ? "ON" : "OFF");
+          }
+          
+          // Cập nhật trạng thái và điều khiển GPIO
+          id(g_fan_on) = should_run;
+          id(fan_gpio).set_state(should_run);
+          
+          // Cập nhật UI (không gây loop vì optimistic=true)
+          id(fan_manual).publish_state(should_run);
+
+# ===================== end fan_lumentree.yaml =====================
