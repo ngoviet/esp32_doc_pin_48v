@@ -48,22 +48,22 @@ cp secrets.yaml.example secrets.yaml
 
 ### 3. Flash Firmware
 ```bash
-# For ESP32
-esphome run esp32_c3_doc_pin_48v.yaml
+# For ESP32-C3
+esphome run esp32-c3-bms-monitor.yaml
 
 # Or use batch files
-flash_c3.bat  # Flash via USB
+flash-c3.bat  # Flash via USB
 log.bat       # View logs
 ```
 
 ## 📁 File Structure
 
 ```
-├── esp32_c3_doc_pin_48v.yaml    # Main ESP32-C3 configuration
-├── base_setup.yaml              # Base ESPHome components
-├── fan_lumentree.yaml           # Fan control logic
+├── esp32-c3-bms-monitor.yaml    # Main ESP32-C3 configuration
+├── base-setup.yaml              # Base ESPHome components
+├── fan-control.yaml             # Fan control logic
 ├── secrets.yaml                 # WiFi credentials (gitignored)
-├── flash_c3.bat                 # Flash script
+├── flash-c3.bat                 # Flash script
 ├── log.bat                      # Log viewer script
 └── .gitignore                   # Git ignore file
 ```
@@ -190,13 +190,13 @@ entities:
 ### Debug Commands
 ```bash
 # Check configuration
-esphome config esp32_c3_doc_pin_48v.yaml
+esphome config esp32-c3-bms-monitor.yaml
 
 # View logs
-esphome logs esp32_c3_doc_pin_48v.yaml --device 192.168.x.x
+esphome logs esp32-c3-bms-monitor.yaml --device 192.168.x.x
 
 # Clean build
-esphome clean esp32_c3_doc_pin_48v.yaml
+esphome clean esp32-c3-bms-monitor.yaml
 ```
 
 ## 📝 License

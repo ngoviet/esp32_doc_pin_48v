@@ -14,8 +14,8 @@ substitutions:
   # Entity nhiệt từ HA:
   # temp_entity: "sensor.device_h240909079_device_temperature"
 packages:
-  base: !include base_setup.yaml
-  fan_lumentree: !include fan_lumentree.yaml
+  base: !include base-setup.yaml
+  fan_control: !include fan-control.yaml
 
 esphome:
   name: ${dev_name}
