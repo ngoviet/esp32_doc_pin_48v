@@ -1,89 +1,89 @@
-# ESP32 BMS Monitor with Fan Control
+# ESP32 Giám Sát BMS với Điều Khiển Quạt Tự Động
 
-ESPHome configuration for monitoring JK-BMS battery management system with automatic fan control based on temperature from Home Assistant.
+Cấu hình ESPHome để giám sát hệ thống quản lý pin JK-BMS với điều khiển quạt tự động dựa trên nhiệt độ từ Home Assistant.
 
-## 🔋 Features
+## 🔋 Tính Năng
 
-- **JK-BMS Monitoring**: Complete monitoring of 16S LiFePO4 battery system via Modbus
-- **200+ Sensors**: Cell voltages, temperatures, current, power, capacity, cycles, etc.
-- **Automatic Fan Control**: Temperature-based fan control with hysteresis logic
-- **Home Assistant Integration**: Native ESPHome API integration
-- **Dual Board Support**: ESP32 and ESP32-C3 SuperMini configurations
-- **Secure Configuration**: WiFi credentials in separate secrets file
+- **Giám Sát JK-BMS**: Giám sát toàn diện hệ thống pin LiFePO4 16S qua Modbus
+- **200+ Cảm Biến**: Điện áp cell, nhiệt độ, dòng điện, công suất, dung lượng, chu kỳ...
+- **Điều Khiển Quạt Tự Động**: Điều khiển quạt theo nhiệt độ với logic hysteresis
+- **Tích Hợp Home Assistant**: Kết nối trực tiếp qua ESPHome API
+- **Hỗ Trợ Đa Board**: Cấu hình cho ESP32 và ESP32-C3 SuperMini
+- **Cấu Hình Bảo Mật**: Thông tin WiFi được lưu trong file riêng biệt
 
-## 📋 Hardware Requirements
+## 📋 Yêu Cầu Phần Cứng
 
-### ESP32 Configuration
+### Cấu Hình ESP32
 - **Board**: ESP32 Dev Module
-- **UART Pins**: GPIO16 (TX), GPIO17 (RX) 
-- **Fan Pin**: GPIO25 (PWM)
+- **Chân UART**: GPIO16 (TX), GPIO17 (RX) 
+- **Chân Quạt**: GPIO25 (PWM)
 - **Framework**: ESP-IDF
 
-### ESP32-C3 SuperMini Configuration  
+### Cấu Hình ESP32-C3 SuperMini  
 - **Board**: ESP32-C3-DevKitM-1
-- **UART Pins**: GPIO21 (TX), GPIO20 (RX)
-- **Fan Pin**: GPIO10
+- **Chân UART**: GPIO21 (TX), GPIO20 (RX)
+- **Chân Quạt**: GPIO10
 - **Framework**: ESP-IDF
 
-### JK-BMS Connection
-- **Protocol**: Modbus RTU over UART
-- **Baud Rate**: 115200
-- **Device Address**: 0x09
-- **Update Interval**: 5-10s
+### Kết Nối JK-BMS
+- **Giao Thức**: Modbus RTU qua UART
+- **Tốc Độ**: 115200 baud
+- **Địa Chỉ Thiết Bị**: 0x09
+- **Tần Suất Cập Nhật**: 5-10 giây
 
-## 🚀 Quick Start
+## 🚀 Bắt Đầu Nhanh
 
-### 1. Clone Repository
+### 1. Tải Repository
 ```bash
 git clone https://github.com/ngoviet/esp32_doc_pin_48v.git
 cd esp32_doc_pin_48v
 ```
 
-### 2. Setup Secrets
-Copy and edit the secrets file:
+### 2. Thiết Lập Secrets
+Sao chép và chỉnh sửa file secrets:
 ```bash
 cp secrets.yaml.example secrets.yaml
-# Edit secrets.yaml with your WiFi credentials
+# Chỉnh sửa secrets.yaml với thông tin WiFi của bạn
 ```
 
 ### 3. Flash Firmware
 ```bash
-# For ESP32-C3
+# Cho ESP32-C3
 esphome run esp32-c3-bms-monitor.yaml
 
-# Or use batch files
-flash-c3.bat  # Flash via USB
-log.bat       # View logs
+# Hoặc dùng file batch
+flash-c3.bat  # Flash qua USB
+log.bat       # Xem logs
 ```
 
-## 📁 File Structure
+## 📁 Cấu Trúc File
 
 ```
-├── esp32-c3-bms-monitor.yaml    # Main ESP32-C3 configuration
-├── base-setup.yaml              # Base ESPHome components
-├── fan-control.yaml             # Fan control logic
-├── secrets.yaml                 # WiFi credentials (gitignored)
-├── flash-c3.bat                 # Flash script
-├── log.bat                      # Log viewer script
-└── .gitignore                   # Git ignore file
+├── esp32-c3-bms-monitor.yaml    # Cấu hình chính ESP32-C3
+├── base-setup.yaml              # Các thành phần ESPHome cơ bản
+├── fan-control.yaml             # Logic điều khiển quạt
+├── secrets.yaml                 # Thông tin WiFi (đã gitignore)
+├── flash-c3.bat                 # Script flash
+├── log.bat                      # Script xem log
+└── .gitignore                   # File git ignore
 ```
 
-## 🌡️ Fan Control Logic
+## 🌡️ Logic Điều Khiển Quạt
 
-The fan system automatically controls cooling based on temperature from Home Assistant:
+Hệ thống quạt tự động điều khiển làm mát dựa trên nhiệt độ từ Home Assistant:
 
-### Auto Mode (Default)
-- **Turn ON**: When temperature ≥ T_HIGH (default: 42°C)
-- **Turn OFF**: When temperature < T_LOW (default: 41°C)  
-- **Hysteresis**: Prevents rapid on/off cycling
+### Chế Độ Tự Động (Mặc Định)
+- **Bật Quạt**: Khi nhiệt độ ≥ T_HIGH (mặc định: 42°C)
+- **Tắt Quạt**: Khi nhiệt độ < T_LOW (mặc định: 41°C)  
+- **Hysteresis**: Ngăn chặn bật/tắt liên tục
 
-### Manual Mode
-- Override automatic control
-- Direct on/off switch control
+### Chế Độ Thủ Công
+- Ghi đè điều khiển tự động
+- Điều khiển bật/tắt trực tiếp
 
-### Temperature Source
-- **Primary**: `sensor.device_h240909079_device_temperature` from Home Assistant
-- **Fallback**: None (fan turns OFF if no data for safety)
+### Nguồn Nhiệt Độ
+- **Chính**: `sensor.device_h240909079_device_temperature` từ Home Assistant
+- **Dự Phòng**: Không có (quạt tắt nếu không có dữ liệu để đảm bảo an toàn)
 
 ## 🔧 Configuration
 
@@ -98,54 +98,54 @@ substitutions:
 ### BMS Settings
 ```yaml
 substitutions:
-  device_addr: "9"                   # BMS Modbus address
-  tx_pin: GPIO21                     # UART TX pin  
-  rx_pin: GPIO20                     # UART RX pin
+  device_addr: "9"                   # Địa chỉ Modbus BMS
+  tx_pin: GPIO21                     # Chân TX UART  
+  rx_pin: GPIO20                     # Chân RX UART
   modbus_controller_update_interval: "10s"
 ```
 
-### WiFi Setup (secrets.yaml)
+### Thiết Lập WiFi (secrets.yaml)
 ```yaml
-wifi_ssid: "Your_WiFi_Name"
-wifi_password: "Your_WiFi_Password"
-wifi_bssid: "aa:bb:cc:dd:ee:ff"    # Optional: specific AP
-wifi_channel: 11                    # Optional: specific channel
+wifi_ssid: "Ten_WiFi_Cua_Ban"
+wifi_password: "Mat_Khau_WiFi_Cua_Ban"
+wifi_bssid: "aa:bb:cc:dd:ee:ff"    # Tùy chọn: AP cụ thể
+wifi_channel: 11                    # Tùy chọn: kênh cụ thể
 ```
 
-## 📊 Available Sensors
+## 📊 Các Cảm Biến Có Sẵn
 
-### Battery Monitoring
-- Cell voltages (1-16): Individual cell voltage monitoring
-- Pack voltage: Total battery pack voltage
-- Current: Charging/discharging current with direction
-- Power: Real-time power consumption/generation
-- SOC: State of Charge percentage
-- SOH: State of Health percentage
+### Giám Sát Pin
+- Điện áp tế bào (1-16): Giám sát điện áp từng tế bào riêng lẻ
+- Điện áp gói pin: Tổng điện áp của gói pin
+- Dòng điện: Dòng sạc/xả có hướng
+- Công suất: Tiêu thụ/phát điện thời gian thực
+- SOC: Phần trăm mức sạc
+- SOH: Phần trăm tình trạng sức khỏe pin
 
-### Temperature Monitoring  
-- MOSFET temperature: Power switching components
-- Battery temperatures: Multiple temperature probes
-- Ambient temperatures: Environmental monitoring
+### Giám Sát Nhiệt Độ  
+- Nhiệt độ MOSFET: Linh kiện chuyển mạch công suất
+- Nhiệt độ pin: Nhiều đầu dò nhiệt độ
+- Nhiệt độ môi trường: Giám sát môi trường
 
-### Protection & Status
-- Overvoltage/undervoltage protection settings
-- Overcurrent protection settings  
-- Temperature protection limits
-- Balancing status and current
-- Charging/discharging status
-- Alarm conditions and error codes
+### Bảo Vệ & Trạng Thái
+- Cài đặt bảo vệ quá áp/thiếu áp
+- Cài đặt bảo vệ quá dòng
+- Giới hạn bảo vệ nhiệt độ
+- Trạng thái và dòng cân bằng
+- Trạng thái sạc/xả
+- Điều kiện báo động và mã lỗi
 
-## 🔗 Home Assistant Integration
+## 🔗 Tích Hợp Home Assistant
 
-### Entities Created
-- **200+ sensors**: All BMS parameters
-- **Fan controls**: Auto/manual modes, thresholds
-- **Binary sensors**: Charging, discharging, balancing status
-- **Diagnostics**: WiFi signal, IP address, device info
+### Thực Thể Được Tạo
+- **200+ cảm biến**: Tất cả thông số BMS
+- **Điều khiển quạt**: Chế độ tự động/thủ công, ngưỡng nhiệt
+- **Cảm biến nhị phân**: Trạng thái sạc, xả, cân bằng
+- **Chẩn đoán**: Tín hiệu WiFi, địa chỉ IP, thông tin thiết bị
 
-### Dashboard Cards
+### Cards Dashboard
 ```yaml
-# Example fan control card
+# Ví dụ card điều khiển quạt
 type: entities
 entities:
   - entity: switch.fan_auto_mode
@@ -155,47 +155,47 @@ entities:
   - entity: sensor.temperature_sensor_1
 ```
 
-## 🛡️ Security Features
+## 🛡️ Tính Năng Bảo Mật
 
-- **Secrets Management**: WiFi credentials stored separately
-- **Git Protection**: `.gitignore` prevents credential exposure
-- **OTA Protection**: Optional password protection for updates
-- **API Encryption**: Optional API communication encryption
+- **Quản Lý Secrets**: Thông tin WiFi được lưu riêng biệt
+- **Bảo Vệ Git**: `.gitignore` ngăn chặn lộ thông tin nhạy cảm
+- **Bảo Vệ OTA**: Tùy chọn bảo vệ mật khẩu cho cập nhật
+- **Mã Hóa API**: Tùy chọn mã hóa giao tiếp API
 
-## 🐛 Troubleshooting
+## 🐛 Khắc Phục Sự Cố
 
-### Common Issues
+### Các Vấn Đề Thường Gặp
 
-**CRC Check Failed**
+**Lỗi Kiểm Tra CRC**
 ```
 [W][modbus:135]: Modbus CRC Check failed! 6C0!=603
 ```
-- Normal occasional errors due to electrical noise
-- Does not affect functionality if data is still received
-- Consider adding `send_wait_time: 50ms` to reduce frequency
+- Lỗi thỉnh thoảng do nhiễu điện bình thường
+- Không ảnh hưởng chức năng nếu vẫn nhận được dữ liệu
+- Cân nhắc thêm `send_wait_time: 50ms` để giảm tần suất
 
-**No Temperature Data**
+**Không Có Dữ Liệu Nhiệt Độ**
 ```
 [W][fan]: No temperature data available, turning fan OFF
 ```
-- Check Home Assistant entity: `sensor.device_h240909079_device_temperature`
-- Verify ESPHome can connect to Home Assistant
-- Fan will safely turn OFF until data is available
+- Kiểm tra thực thể Home Assistant: `sensor.device_h240909079_device_temperature`
+- Xác minh ESPHome có thể kết nối với Home Assistant
+- Quạt sẽ an toàn TẮT cho đến khi có dữ liệu
 
-**Compilation Errors**
-- Ensure all `id:` references match between files
-- Check YAML indentation (spaces, not tabs)
-- Verify pin assignments for your specific board
+**Lỗi Compilation**
+- Đảm bảo tất cả tham chiếu `id:` khớp giữa các file
+- Kiểm tra thụt lề YAML (dùng space, không phải tab)
+- Xác minh phân công chân cho board cụ thể của bạn
 
-### Debug Commands
+### Lệnh Debug
 ```bash
-# Check configuration
+# Kiểm tra cấu hình
 esphome config esp32-c3-bms-monitor.yaml
 
-# View logs
+# Xem logs
 esphome logs esp32-c3-bms-monitor.yaml --device 192.168.x.x
 
-# Clean build
+# Xóa build cache
 esphome clean esp32-c3-bms-monitor.yaml
 ```
 
